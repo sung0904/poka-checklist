@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>RIIZE 포카 체크리스트</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      margin: 2rem;
+      background-color: #fdfdfd;
+      color: #333;
+    }
+    h1 {
+      font-size: 1.8rem;
+    }
+    .filters, .ownership {
+      margin: 1rem 0;
+    }
+    button {
+      margin: 0.25rem;
+      padding: 0.4rem 0.8rem;
+      border: none;
+      border-radius: 4px;
+      background-color: #e0e0e0;
+      cursor: pointer;
+    }
+    button.active {
+      background-color: #4fc3f7;
+      color: white;
+    }
+    .card-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    .card {
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 0.5rem;
+      width: 140px;
+      text-align: center;
+      background-color: white;
+    }
+    .card img {
+      width: 100%;
+      border-radius: 4px;
+    }
+    .add-form {
+      margin-top: 2rem;
+      border-top: 1px dashed #ccc;
+      padding-top: 1rem;
+    }
+    .checkbox {
+      margin-top: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>📸 RIIZE 포토카드 체크리스트</h1>
+
+  <div class="filters">
+    <strong>종류:</strong>
+    <button onclick="filterType('전체')" class="active">전체</button>
+    <button onclick="filterType('앨범')">앨범</button>
+    <button onclick="filterType('응원')">응원</button>
+    <button onclick="filterType('광고')">광고</button>
+  </div>
+
+  <div class="ownership">
+    <strong>소장여부:</strong>
+    <button onclick="filterOwned('전체')" class="active">전체</button>
+    <button onclick="filterOwned('소장')">소장</button>
+    <button onclick="filterOwned('미소장')">미소장</button>
+  </div>
+
+  <div class="card-list" id="card-list"></div>
+
+  <div class="add-form">
+    <h3>포토카드 추가하기</h3>
+    <input type="text" id="name-input" placeholder="이름" />
+    <select id="type-select">
+      <option value="앨범">앨범</option>
+      <option value="응원">응원</option>
+      <option value="광고">광고</option>
+    </select>
+    <input type="file" id="image-input" />
+    <div class="checkbox">
+      <label><input type="checkbox" id="owned-checkbox" /> 소장함</label>
+    </div>
+    <button onclick="addPhotocard()">추가</button>
+  </div>
+
+  <script>
+    let photocards = JSON.parse(localStorage.getItem("photocards") || "[]");
+    let currentType = "전체";
+    let currentOwned = "전체";
+
+    function saveToLocalStorage() {
+      localStorage.setItem("photocards", JSON.stringify(photocards));
+    }
+
+    function renderPhotocards() {
+      const list = document.getElementById("card-list");
+      list.innerHTML = "";
+
+      let filtered = photocards.filter(card => {
+        const matchType = currentType === "전체" || card.type === currentType;
+        const matchOwned = currentOwned === "전체" ||
+          (currentOwned === "소장" && card.owned) ||
+          (currentOwned === "미소장" && !card.owned);
+        return matchType && matchOwned;
+      });
+
+      for (const card of filtered) {
+        const div = document.createElement("div");
+        div.className = "card";
+        div.innerHTML = \`
+          <img src="\${card.image}" alt="\${card.name}" />
+          <div><strong>\${card.name}</strong></div>
+          <div>\${card.type}</div>
+          <div>\${card.owned ? "소장" : "미소장"}</div>
+        \`;
+        list.appendChild(div);
+      }
+    }
+
+    function filterType(type) {
+      currentType = type;
+      document.querySelectorAll(".filters button").forEach(btn => {
+        btn.classList.toggle("active", btn.textContent === type);
+      });
+      renderPhotocards();
+    }
+
+    function filterOwned(owned) {
+      currentOwned = owned;
+      document.querySelectorAll(".ownership button").forEach(btn => {
+        btn.classList.toggle("active", btn.textContent === owned);
+      });
+      renderPhotocards();
+    }
+
+    function addPhotocard() {
+      const name = document.getElementById("name-input").value.trim();
+      const type = document.getElementById("type-select").value;
+      const fileInput = document.getElementById("image-input");
+      const owned = document.getElementById("owned-checkbox").checked;
+
+      if (!name || fileInput.files.length === 0) {
+        alert("이름과 이미지를 입력해 주세요.");
+        return;
+      }
+
+      const file = fileInput.files[0];
+      const reader = new FileReader();
+      reader.onload = function () {
+        photocards.push({ name, type, image: reader.result, owned });
+        saveToLocalStorage();
+        renderPhotocards();
+      };
+
+      document.getElementById('name-input').value = '';
+      fileInput.value = '';
+      reader.readAsDataURL(file);
+    }
+
+    renderPhotocards();
+  </script>
+</body>
+</html>
